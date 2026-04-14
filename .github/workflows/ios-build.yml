@@ -7,9 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    runs-on: macos-13 # Použijeme starší a stabilnejší macOS
 
     steps:
     - name: Checkout kód
@@ -18,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22' # Zmenené na novšiu verziu
+        node-version: '20'
 
     - name: Inštalácia závislostí
       run: npm install
@@ -26,11 +24,10 @@ jobs:
     - name: Build Webovej aplikácie
       run: npm run build
 
-    - name: Pridanie iOS platformy (ak chýba)
+    - name: Pridanie iOS platformy
       run: |
-        if [ ! -d "ios" ]; then
-          npx cap add ios
-        fi
+        npm install @capacitor/ios
+        npx cap add ios || echo "iOS platforma už existuje"
 
     - name: Sync Capacitor iOS
       run: npx cap sync ios
@@ -38,7 +35,10 @@ jobs:
     - name: Build iOS App (Nepodpísaná)
       run: |
         cd ios/App
-        xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build CONFIGURATION_BUILD_DIR=$PWD/build || exit 1
+        # Nainštalujeme CocoaPods (závislosti pre iOS)
+        pod install
+        # Samotný build
+        xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build CONFIGURATION_BUILD_DIR=$PWD/build
 
     - name: Vytvorenie IPA súboru
       run: |
