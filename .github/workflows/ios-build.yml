@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-13 # Použijeme starší a stabilnejší macOS
+    runs-on: macos-14 # Použijeme starší a stabilnejší macOS
 
     steps:
     - name: Checkout kód
