@@ -7,7 +7,9 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14 # Použijeme starší a stabilnejší macOS
+    runs-on: macos-14
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
     - name: Checkout kód
@@ -16,7 +18,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
 
     - name: Inštalácia závislostí
       run: npm install
@@ -35,15 +37,17 @@ jobs:
     - name: Build iOS App (Nepodpísaná)
       run: |
         cd ios/App
-        # Nainštalujeme CocoaPods (závislosti pre iOS)
         pod install
-        # Samotný build
-        xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build CONFIGURATION_BUILD_DIR=$PWD/build
+        xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build CONFIGURATION_BUILD_DIR=$PWD/build || {
+          echo "XCODEBUILD ZLYHAL! Tu je detailný log:"
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build CONFIGURATION_BUILD_DIR=$PWD/build | tail -n 50
+          exit 1
+        }
 
     - name: Vytvorenie IPA súboru
       run: |
         cd ios/App/build
-        mkdir Payload
+        mkdir -p Payload
         mv App.app Payload/
         zip -r app-unsigned.ipa Payload
 
