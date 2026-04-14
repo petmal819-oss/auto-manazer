@@ -8,8 +8,6 @@ on:
 jobs:
   build:
     runs-on: macos-14
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
     - name: Checkout kód
@@ -29,7 +27,10 @@ jobs:
     - name: Pridanie iOS platformy
       run: |
         npm install @capacitor/ios
-        npx cap add ios || echo "iOS platforma už existuje"
+        # Zabezpečíme, že capacitor.config.ts/json existuje
+        npx cap init "Auto Manazer" "com.petmal819.automanazer" --web-dir dist || true
+        # Pridáme iOS platformu
+        npx cap add ios
 
     - name: Sync Capacitor iOS
       run: npx cap sync ios
@@ -37,7 +38,7 @@ jobs:
     - name: Build iOS App (Nepodpísaná)
       run: |
         cd ios/App
-        pod install
+        # Odstránil som pod install, npx cap sync ios by to mal urobiť sám
         xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build CONFIGURATION_BUILD_DIR=$PWD/build || {
           echo "XCODEBUILD ZLYHAL! Tu je detailný log:"
           xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build CONFIGURATION_BUILD_DIR=$PWD/build | tail -n 50
