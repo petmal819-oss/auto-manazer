@@ -1,0 +1,5 @@
+{
+  "name": "Auto Manažér",
+  "description": "Mobilná aplikácia na evidenciu servisných prác, poistiek a diaľničných známok.",
+  "requestFramePermissions": []
+}

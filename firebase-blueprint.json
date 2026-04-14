@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "Car": {
+      "title": "Car",
+      "description": "A vehicle owned by the user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "plate": { "type": "string" },
+        "make": { "type": "string" },
+        "model": { "type": "string" },
+        "year": { "type": "number" },
+        "color": { "type": "string" },
+        "vin": { "type": "string" },
+        "engineCapacity": { "type": "number" },
+        "powerKw": { "type": "number" },
+        "photo": { "type": ["string", "array"], "items": { "type": "string" } },
+        "registrationCard": { "type": ["string", "array"], "items": { "type": "string" } },
+        "stkEkCard": { "type": ["string", "array"], "items": { "type": "string" } },
+        "stkValidTo": { "type": "string" },
+        "whiteCardPhoto": { "type": ["string", "array"], "items": { "type": "string" } },
+        "insuranceValidTo": { "type": "string" }
+      },
+      "required": ["id", "userId", "plate", "make", "model", "year"]
+    },
+    "ServiceRecord": {
+      "title": "ServiceRecord",
+      "description": "A service record for a car",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "carId": { "type": "string" },
+        "date": { "type": "string" },
+        "description": { "type": "string" },
+        "cost": { "type": "number" },
+        "mileage": { "type": "number" },
+        "notes": { "type": "string" },
+        "photo": { "type": ["string", "array"], "items": { "type": "string" } }
+      },
+      "required": ["id", "userId", "carId", "date", "description", "cost", "mileage"]
+    },
+    "Vignette": {
+      "title": "Vignette",
+      "description": "A highway vignette for a car",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "carId": { "type": "string" },
+        "country": { "type": "string" },
+        "type": { "type": "string" },
+        "validFrom": { "type": "string" },
+        "validTo": { "type": "string" }
+      },
+      "required": ["id", "userId", "carId", "country", "type", "validFrom", "validTo"]
+    },
+    "Refueling": {
+      "title": "Refueling",
+      "description": "A refueling record for a car",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "carId": { "type": "string" },
+        "date": { "type": "string" },
+        "pricePerLiter": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "mileage": { "type": "number" },
+        "liters": { "type": "number" },
+        "averageConsumption": { "type": "number" }
+      },
+      "required": ["id", "userId", "carId", "date", "pricePerLiter", "totalCost", "mileage"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/cars/{carId}": {
+      "schema": { "$ref": "#/entities/Car" },
+      "description": "Cars owned by the user"
+    },
+    "/users/{userId}/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/ServiceRecord" },
+      "description": "Service records for the user's cars"
+    },
+    "/users/{userId}/vignettes/{vignetteId}": {
+      "schema": { "$ref": "#/entities/Vignette" },
+      "description": "Vignettes for the user's cars"
+    },
+    "/users/{userId}/refuelings/{refuelingId}": {
+      "schema": { "$ref": "#/entities/Refueling" },
+      "description": "Refueling records for the user's cars"
+    }
+  }
+}

@@ -1,0 +1,206 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users/{userId}/cars
+    // Document ID: {carId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required)
+    //   - plate: string (required)
+    //   - make: string (required)
+    //   - model: string (required)
+    //   - year: number (required)
+    //   - color: string (optional)
+    //   - vin: string (optional)
+    //   - engineCapacity: number (optional)
+    //   - powerKw: number (optional)
+    //   - photo: string (optional)
+    //   - registrationCard: string (optional)
+    //   - stkEkCard: string (optional)
+    //   - stkValidTo: string (optional)
+    //   - whiteCardPhoto: string (optional)
+    //   - insuranceValidTo: string (optional)
+    //
+    // Collection: users/{userId}/services
+    // Document ID: {serviceId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required)
+    //   - carId: string (required)
+    //   - date: string (required)
+    //   - description: string (required)
+    //   - cost: number (required)
+    //   - mileage: number (required)
+    //   - notes: string (optional)
+    //   - photo: string (optional)
+    //
+    // Collection: users/{userId}/vignettes
+    // Document ID: {vignetteId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required)
+    //   - carId: string (required)
+    //   - country: string (required)
+    //   - type: string (required)
+    //   - validFrom: string (required)
+    //   - validTo: string (required)
+    //
+    // Collection: users/{userId}/refuelings
+    // Document ID: {refuelingId}
+    // Fields:
+    //   - id: string (required)
+    //   - userId: string (required)
+    //   - carId: string (required)
+    //   - date: string (required)
+    //   - pricePerLiter: number (required)
+    //   - totalCost: number (required)
+    //   - mileage: number (required)
+    //   - averageConsumption: number (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function uidUnchanged() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid;
+    }
+    
+    function uidNotModified() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function isValidString(field, maxLen) {
+      return request.resource.data[field] is string && request.resource.data[field].size() <= maxLen;
+    }
+    
+    function isValidOptionalString(field, maxLen) {
+      return !(field in request.resource.data) || (request.resource.data[field] is string && request.resource.data[field].size() <= maxLen);
+    }
+    
+    function isValidOptionalStringOrList(field, maxLen, maxListSize) {
+      return !(field in request.resource.data) || 
+             (request.resource.data[field] is string && request.resource.data[field].size() <= maxLen) ||
+             (request.resource.data[field] is list && request.resource.data[field].size() <= maxListSize);
+    }
+    
+    function isValidNumber(field) {
+      return request.resource.data[field] is number;
+    }
+    
+    function isValidOptionalNumber(field) {
+      return !(field in request.resource.data) || request.resource.data[field] is number;
+    }
+
+    // Domain Validators
+    function isValidCar() {
+      return hasRequiredFields(['id', 'userId', 'plate', 'make', 'model', 'year']) &&
+             isValidString('id', 100) &&
+             isValidString('userId', 100) &&
+             isValidString('plate', 20) &&
+             isValidString('make', 50) &&
+             isValidString('model', 50) &&
+             isValidNumber('year') &&
+             isValidOptionalString('color', 50) &&
+             isValidOptionalString('vin', 50) &&
+             isValidOptionalNumber('engineCapacity') &&
+             isValidOptionalNumber('powerKw') &&
+             isValidOptionalStringOrList('photo', 1048576, 10) && // 1MB limit for base64, max 10 photos
+             isValidOptionalStringOrList('registrationCard', 1048576, 10) &&
+             isValidOptionalStringOrList('stkEkCard', 1048576, 10) &&
+             isValidOptionalString('stkValidTo', 20) &&
+             isValidOptionalStringOrList('whiteCardPhoto', 1048576, 10) &&
+             isValidOptionalString('insuranceValidTo', 20);
+    }
+
+    function isValidService() {
+      return hasRequiredFields(['id', 'userId', 'carId', 'date', 'description', 'cost', 'mileage']) &&
+             isValidString('id', 100) &&
+             isValidString('userId', 100) &&
+             isValidString('carId', 100) &&
+             isValidString('date', 20) &&
+             isValidString('description', 500) &&
+             isValidNumber('cost') &&
+             isValidNumber('mileage') &&
+             isValidOptionalString('notes', 2000) &&
+             isValidOptionalStringOrList('photo', 1048576, 10);
+    }
+
+    function isValidVignette() {
+      return hasRequiredFields(['id', 'userId', 'carId', 'country', 'type', 'validFrom', 'validTo']) &&
+             isValidString('id', 100) &&
+             isValidString('userId', 100) &&
+             isValidString('carId', 100) &&
+             isValidString('country', 100) &&
+             isValidString('type', 50) &&
+             isValidString('validFrom', 20) &&
+             isValidString('validTo', 20);
+    }
+
+    function isValidRefueling() {
+      return hasRequiredFields(['id', 'userId', 'carId', 'date', 'pricePerLiter', 'totalCost', 'mileage']) &&
+             isValidString('id', 100) &&
+             isValidString('userId', 100) &&
+             isValidString('carId', 100) &&
+             isValidString('date', 20) &&
+             isValidNumber('pricePerLiter') &&
+             isValidNumber('totalCost') &&
+             isValidNumber('mileage') &&
+             isValidOptionalNumber('liters') &&
+             isValidOptionalNumber('averageConsumption');
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      match /cars/{carId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCar() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidCar() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+      
+      match /services/{serviceId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidService() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidService() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+      
+      match /vignettes/{vignetteId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidVignette() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidVignette() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+      
+      match /refuelings/{refuelingId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidRefueling() && uidUnchanged();
+        allow update: if isOwner(userId) && isValidRefueling() && uidNotModified();
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
