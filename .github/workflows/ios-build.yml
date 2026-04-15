@@ -7,7 +7,9 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15 # TOTO JE TA HLAVNA ZMENA - pouzije najnovsi Mac s Xcode 16
+    runs-on: macos-15
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
     - name: Checkout kód
@@ -29,6 +31,23 @@ jobs:
         npm install @capacitor/ios
         rm -rf ios
         npx cap add ios
+
+    - name: Generovanie ikon a splash screenov
+      run: |
+        echo "Hľadám ikonu v priečinku assets..."
+        ls -la assets/ || true
+        
+        PNG_FILE=$(find assets -maxdepth 1 -iname "*.png" | head -n 1)
+        
+        if [ -n "$PNG_FILE" ]; then
+          echo "Našiel sa obrázok: $PNG_FILE. Nastavujem ako icon.png"
+          cp "$PNG_FILE" assets/icon.png
+          
+          echo "Spúšťam generovanie ikon..."
+          npx @capacitor/assets generate --ios --verbose
+        else
+          echo "POZOR: Žiadny PNG súbor sa nenašiel v priečinku assets!"
+        fi
 
     - name: Sync Capacitor iOS
       run: npx cap sync ios
