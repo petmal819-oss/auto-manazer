@@ -41,8 +41,7 @@ jobs:
         
         if [ -n "$PNG_FILE" ]; then
           echo "Našiel sa obrázok: $PNG_FILE. Nastavujem ako icon.png"
-          cp "$PNG_FILE" assets/icon.png
-          
+                    
           echo "Spúšťam generovanie ikon..."
           npx @capacitor/assets generate --ios --verbose
         else
