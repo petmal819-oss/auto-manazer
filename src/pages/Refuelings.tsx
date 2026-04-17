@@ -30,67 +30,44 @@ export function Refuelings() {
     }
   }, [location.state]);
 
-  const handleLitersChange = (val: number) => {
-    setNewRefueling(prev => {
-      const updates: Partial<Refueling> = { liters: val };
-      if (prev.pricePerLiter && prev.pricePerLiter > 0) {
-        updates.totalCost = Number((val * prev.pricePerLiter).toFixed(2));
-      } else if (prev.totalCost && prev.totalCost > 0) {
-        updates.pricePerLiter = Number((prev.totalCost / val).toFixed(3));
-      }
-      return { ...prev, ...updates };
-    });
+  const handleLitersChange = (val: string) => {
+    setNewRefueling(prev => ({ ...prev, liters: val === '' ? 0 : Number(val) }));
   };
 
-  const handlePriceChange = (val: number) => {
-    setNewRefueling(prev => {
-      const updates: Partial<Refueling> = { pricePerLiter: val };
-      if (prev.liters && prev.liters > 0) {
-        updates.totalCost = Number((prev.liters * val).toFixed(2));
-      } else if (prev.totalCost && prev.totalCost > 0) {
-        updates.liters = Number((prev.totalCost / val).toFixed(2));
-      }
-      return { ...prev, ...updates };
-    });
-  };
-
-  const handleTotalChange = (val: number) => {
-    setNewRefueling(prev => {
-      const updates: Partial<Refueling> = { totalCost: val };
-      if (prev.pricePerLiter && prev.pricePerLiter > 0) {
-        updates.liters = Number((val / prev.pricePerLiter).toFixed(2));
-      } else if (prev.liters && prev.liters > 0) {
-        updates.pricePerLiter = Number((val / prev.liters).toFixed(3));
-      }
-      return { ...prev, ...updates };
-    });
+  const handleTotalChange = (val: string) => {
+    setNewRefueling(prev => ({ ...prev, totalCost: val === '' ? 0 : Number(val) }));
   };
 
   const handleAddRefueling = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newRefueling.carId && newRefueling.date && newRefueling.pricePerLiter && newRefueling.totalCost && newRefueling.mileage) {
+    
+    // Auto vypočítať pricePerLiter ak nie je nastavená
+    const liters = Number(newRefueling.liters);
+    const totalCost = Number(newRefueling.totalCost);
+    const mileage = Number(newRefueling.mileage);
+    const computedPricePerLiter = (totalCost > 0 && liters > 0) ? totalCost / liters : 0;
+    
+    if (newRefueling.carId && newRefueling.date && liters && totalCost && mileage) {
       
-      let calculatedAvg = newRefueling.averageConsumption ? Number(newRefueling.averageConsumption) : undefined;
+      let calculatedAvg = undefined;
       
-      if (!calculatedAvg) {
-        const carRefuelings = data.refuelings.filter(r => r.carId === newRefueling.carId);
-        const sortedRefuelings = [...carRefuelings].sort((a, b) => a.mileage - b.mileage);
-        if (sortedRefuelings.length > 0) {
-          const firstRefueling = sortedRefuelings[0];
-          const currentMileage = Number(newRefueling.mileage);
+      const carRefuelings = data.refuelings.filter(r => r.carId === newRefueling.carId);
+      const sortedRefuelings = [...carRefuelings].sort((a, b) => a.mileage - b.mileage);
+      if (sortedRefuelings.length > 0) {
+        const firstRefueling = sortedRefuelings[0];
+        const currentMileage = mileage;
+        
+        if (currentMileage > firstRefueling.mileage) {
+          const totalDistance = currentMileage - firstRefueling.mileage;
+          let totalLiters = liters;
           
-          if (currentMileage > firstRefueling.mileage) {
-            const totalDistance = currentMileage - firstRefueling.mileage;
-            let totalLiters = newRefueling.liters ? Number(newRefueling.liters) : Number(newRefueling.totalCost) / Number(newRefueling.pricePerLiter);
-            
-            for (let i = 1; i < sortedRefuelings.length; i++) {
-               if (sortedRefuelings[i].mileage < currentMileage) {
-                 totalLiters += sortedRefuelings[i].liters ? sortedRefuelings[i].liters! : (sortedRefuelings[i].totalCost / sortedRefuelings[i].pricePerLiter);
-               }
-            }
-            
-            calculatedAvg = (totalLiters / totalDistance) * 100;
+          for (let i = 1; i < sortedRefuelings.length; i++) {
+             if (sortedRefuelings[i].mileage < currentMileage) {
+               totalLiters += sortedRefuelings[i].liters ? sortedRefuelings[i].liters! : (sortedRefuelings[i].totalCost / sortedRefuelings[i].pricePerLiter);
+             }
           }
+          
+          calculatedAvg = (totalLiters / totalDistance) * 100;
         }
       }
 
@@ -98,12 +75,13 @@ export function Refuelings() {
         id: uuidv4(),
         carId: newRefueling.carId,
         date: newRefueling.date,
-        pricePerLiter: Number(newRefueling.pricePerLiter),
-        totalCost: Number(newRefueling.totalCost),
-        mileage: Number(newRefueling.mileage),
-        liters: newRefueling.liters ? Number(newRefueling.liters) : Number((Number(newRefueling.totalCost) / Number(newRefueling.pricePerLiter)).toFixed(2)),
+        pricePerLiter: Number(computedPricePerLiter.toFixed(3)),
+        totalCost: totalCost,
+        mileage: mileage,
+        liters: liters,
         averageConsumption: calculatedAvg
       });
+      
       setIsAdding(false);
       setNewRefueling({
         date: format(new Date(), 'yyyy-MM-dd'),
@@ -181,59 +159,50 @@ export function Refuelings() {
                   <Input 
                     id="liters" 
                     type="number" 
-                    step="0.01"
-                    value={newRefueling.liters || ''} 
-                    onChange={e => handleLitersChange(Number(e.target.value))}
+                    step="any"
+                    value={newRefueling.liters === 0 ? '' : newRefueling.liters} 
+                    onChange={e => handleLitersChange(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="price">Cena za liter (€) *</Label>
-                  <Input 
-                    id="price" 
-                    type="number" 
-                    step="0.001"
-                    value={newRefueling.pricePerLiter || ''} 
-                    onChange={e => handlePriceChange(Number(e.target.value))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="total">Celková suma (€) *</Label>
                   <Input 
                     id="total" 
                     type="number" 
-                    step="0.01"
-                    value={newRefueling.totalCost || ''} 
-                    onChange={e => handleTotalChange(Number(e.target.value))}
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="mileage">Stav km *</Label>
-                  <Input 
-                    id="mileage" 
-                    type="number" 
-                    value={newRefueling.mileage || ''} 
-                    onChange={e => setNewRefueling({...newRefueling, mileage: Number(e.target.value)})}
+                    step="any"
+                    value={newRefueling.totalCost === 0 ? '' : newRefueling.totalCost} 
+                    onChange={e => handleTotalChange(e.target.value)}
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="cons">Spotreba (l/100km)</Label>
+                <Label htmlFor="mileage">Stav km *</Label>
                 <Input 
-                  id="cons" 
+                  id="mileage" 
                   type="number" 
-                  step="0.1"
-                  value={newRefueling.averageConsumption || ''} 
-                  onChange={e => setNewRefueling({...newRefueling, averageConsumption: Number(e.target.value)})}
-                  placeholder="Voliteľné - inak sa vypočíta automaticky"
+                  step="any"
+                  value={newRefueling.mileage === 0 ? '' : newRefueling.mileage} 
+                  onChange={e => setNewRefueling({...newRefueling, mileage: e.target.value === '' ? 0 : Number(e.target.value)})}
+                  required
                 />
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700 grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <Label className="text-gray-500 dark:text-gray-400 text-xs">Cena za liter (vypočítaná)</Label>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                    {newRefueling.totalCost && newRefueling.liters ? (newRefueling.totalCost / newRefueling.liters).toFixed(3) : '0.000'} €/l
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-500 dark:text-gray-400 text-xs">Predpokladaná spotreba</Label>
+                  <p className="font-semibold text-gray-900 dark:text-gray-100">
+                    Bude vypočítaná po uložení
+                  </p>
+                </div>
               </div>
 
               <Button type="submit" className="w-full">Uložiť záznam</Button>
