@@ -17,8 +17,8 @@ function Layout() {
   const location = useLocation();
   const { isAuthenticated, authenticate, isPinEnabled, hasPin, isFirstLaunch, updatePin } = useSecurity();
   
-  useNotifications(); 
-  useTheme(); 
+  useNotifications(); // Initialize notifications
+  useTheme(); // Initialize theme
 
   if (isFirstLaunch) {
     return <PinSetup onSetupComplete={updatePin} />;
