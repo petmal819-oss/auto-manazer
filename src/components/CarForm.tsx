@@ -87,9 +87,9 @@ export function CarForm({ initialData, onSubmit, onCancel, submitLabel }: CarFor
             <button
               type="button"
               onClick={() => removeImage(field, idx)}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-sm active:scale-95 transition-transform"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         ))}
